@@ -11,12 +11,15 @@ type Item = {
 
 
 
+
 const itemSchema = new mongoose.Schema<Item>({
     name :{
         type: String,
         required: [true, "name is required"],
         minlength: [3, "name must be at least 3 characters long"],
         trim: true,
+        
+
     },
     description: {
         type: String,
