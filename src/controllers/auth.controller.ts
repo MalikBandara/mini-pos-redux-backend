@@ -43,6 +43,7 @@ export const login = async (
   try {
     const { email, password } = req.body;
     const user = await UserModel.findOne({ email });
+
     if (!user) {
       throw new ApiError(404, "User not found");
     } else {
@@ -75,6 +76,7 @@ export const login = async (
     }
   } catch (error: any) {
     next(error);
+    console.log(error);
   }
 };
 
@@ -108,11 +110,11 @@ export const refreshToken = async (
       async (error: Error | null, decoded: string | JwtPayload | undefined) => {
         if (error) {
           if (error instanceof TokenExpiredError) {
-            throw new ApiError(401, "RefreshTOken expired!");
+            return next(new ApiError(401, "RefreshTOken expired!"));
           } else if (error instanceof JsonWebTokenError) {
-            throw new ApiError(401, "Invalid Refresh Token!");
+            return next(new ApiError(401, "Invalid Refresh Token!"));
           } else {
-            throw new ApiError(401, "Refresh token error!");
+            return next(new ApiError(401, "Refresh token error!"));
           }
         }
         if (!decoded || typeof decoded === "string") {
@@ -137,11 +139,7 @@ export const refreshToken = async (
   }
 };
 
-export const logOut = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const logOut = (req: Request, res: Response, next: NextFunction) => {
   const isProduct = process.env.NODE_ENV === "production";
 
   try {
