@@ -3,29 +3,29 @@ import dotenv from "dotenv";
 import { connectDB } from "./db/mongo";
 import rootRouter from "./routes";
 import { errorHandler } from "./middleware/errorHandeler";
-import cors from "cors"
+import cors from "cors";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 const app = express();
 
-//handle cors 
+//handle cors
 const corsOptions = {
   origin: process.env.CLIENT_ORIGIN,
-  Credential : true,
-  methods : "GET,HEAD, PUT,POST,DELETE,PATCH,OPTIONS",
-  allowedHeaders:["Content-Type" , "Authorization" ]
-}
+  Credential: true,
+  methods: "GET,HEAD, PUT,POST,DELETE,PATCH,OPTIONS",
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-app.use(cors(corsOptions))
-
-
+app.use(cors(corsOptions));
+app.use(cookieParser());
 
 app.use(express.json());
 
 //localhost:3000
 
 const PORT = process.env.PORT;
-app.use("/api" , rootRouter);
+app.use("/api", rootRouter);
 app.use(errorHandler);
 
 app.get("/", (req: Request, resp: Response) => {

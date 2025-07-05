@@ -3,7 +3,11 @@ import { Request, Response } from "express";
 import { UserModel } from "../models/user";
 import bcrypt from "bcrypt";
 import { ApiError } from "../errors/apiError";
-import jwt from "jsonwebtoken";
+import jwt, {
+  JsonWebTokenError,
+  JwtPayload,
+  TokenExpiredError,
+} from "jsonwebtoken";
 
 export const SignUp = async (
   req: Request,
@@ -24,7 +28,6 @@ export const SignUp = async (
       _id: user._id,
       name: user.name,
       email: user.email,
-      password: user.password,
     };
     res.status(201).json(userWithoutPassword);
   } catch (error) {
@@ -59,30 +62,98 @@ export const login = async (
         httpOnly: true,
         secure: isProduct,
         maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: "api/auth/refresh-token",
+        path: "/api/auth/refresh-token",
       });
 
       const userWithoutPassword = {
         _id: user._id,
         name: user.name,
         email: user.email,
-        accessToken
+        accessToken,
       };
-      res.status(201).json(userWithoutPassword);
+      res.status(200).json(userWithoutPassword);
     }
   } catch (error: any) {
     next(error);
   }
 };
 
-const createAccessToken = (userId: string) => {
+export const createAccessToken = (userId: string) => {
   return jwt.sign({ userId }, process.env.ACCESS_TOKEN_SECRET!, {
-    expiresIn: "15m",
+    expiresIn: "10m",
   });
 };
 
-const createRefreshToken = (userId: string) => {
+export const createRefreshToken = (userId: string) => {
   return jwt.sign({ userId }, process.env.REFRESH_TOKEN_SECRET!, {
     expiresIn: "7d",
   });
+};
+
+export const refreshToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const token = req.cookies?.refreshToken;
+
+    if (!token) {
+      throw new ApiError(401, "Refresh TOken missing");
+    }
+
+    jwt.verify(
+      token,
+      process.env.REFRESH_TOKEN_SECRET!,
+      async (error: Error | null, decoded: string | JwtPayload | undefined) => {
+        if (error) {
+          if (error instanceof TokenExpiredError) {
+            throw new ApiError(401, "RefreshTOken expired!");
+          } else if (error instanceof JsonWebTokenError) {
+            throw new ApiError(401, "Invalid Refresh Token!");
+          } else {
+            throw new ApiError(401, "Refresh token error!");
+          }
+        }
+        if (!decoded || typeof decoded === "string") {
+          throw new ApiError(401, "Refresh token payload error!!!");
+        }
+
+        const userId = decoded.userId as string;
+        const user = await UserModel.findById(userId);
+
+        if (!user) {
+          throw new ApiError(401, "User not found !!!!!");
+        }
+
+        const newAccessToken = createAccessToken(user._id.toString());
+        res.status(200).json({
+          accessToken: newAccessToken,
+        });
+      }
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const logOut = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const isProduct = process.env.NODE_ENV === "production";
+
+  try {
+    res.cookie("refreshToken", "", {
+      httpOnly: true,
+      secure: isProduct,
+      expires: new Date(0),
+      path: "/api/auth/refresh-token",
+    });
+
+    res.status(200).json({ message: "Log out successfully!!!!" });
+  } catch (error) {
+    next(error);
+  }
 };

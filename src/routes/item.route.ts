@@ -5,8 +5,11 @@ import {
   findItemById,
   getItems,
 } from "../controllers/ItemController";
+import { authenticateToken } from "../middleware/authenticateToken";
 
 const ItemRouter = Router();
+
+ItemRouter.use(authenticateToken);
 ItemRouter.post("/", createItem);
 ItemRouter.get("/", getItems);
 ItemRouter.get("/:id", findItemById);

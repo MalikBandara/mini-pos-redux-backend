@@ -6,8 +6,12 @@ import {
   getCustomers,
   updateCustomer,
 } from "../controllers/customerController";
+import { authenticateToken } from "../middleware/authenticateToken";
 
 const customerRouter = Router();
+
+customerRouter.use(authenticateToken)
+
 customerRouter.post("/", createCustomer);
 
 customerRouter.get("/", getCustomers);
